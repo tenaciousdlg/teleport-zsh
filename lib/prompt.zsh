@@ -136,23 +136,32 @@ prompt_teleport() {
   fi
 
   # Other clusters you hold LIVE credentials on right now — expired or
-  # logged-out profiles don't count (they're inventory, not exposure; see
-  # tprofiles for the full list). TELEPORT_ZSH_NO_OTHERS=1 hides the tail.
+  # logged-out profiles never show (they're inventory, not exposure; see
+  # tprofiles for the full list). Shown by name (+blackhat) while short,
+  # falling back to a count (+3) when names would crowd the prompt.
+  # TELEPORT_ZSH_OTHERS=count forces the count; =off hides the tail.
   # Safe to reuse _teleport_cert_meta here: the active cert's values were
   # captured into locals above.
   local others=""
-  if [[ -z $TELEPORT_ZSH_NO_OTHERS ]]; then
-    local op live=0
-    local -a ocerts oyams
+  if [[ $TELEPORT_ZSH_OTHERS != off ]]; then
+    local op names
+    local -a ocerts oyams live
     oyams=($tdir/*.yaml(N))
     for op in ${(@)oyams:t:r}; do
       [[ $op == $prof ]] && continue
       ocerts=($tdir/keys/$op/*.crt(N))
       (( $#ocerts )) || continue
       _teleport_cert_meta "${ocerts[1]}" || continue
-      (( _tp_expiry > EPOCHSECONDS )) && (( live++ ))
+      (( _tp_expiry > EPOCHSECONDS )) && live+=(${op%%.*})
     done
-    (( live )) && others=" +$live"
+    if (( $#live )); then
+      names="${(j:,:)live}"
+      if [[ $TELEPORT_ZSH_OTHERS != count ]] && (( $#names <= 16 )); then
+        others=" +$names"
+      else
+        others=" +$#live"
+      fi
+    fi
   fi
 
   # Persona shells stay magenta while healthy so bob/alice terminals are

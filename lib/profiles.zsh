@@ -10,6 +10,60 @@
 # Switch with `tsh login --proxy=<TAB>` (completion offers known profiles;
 # a still-valid cert switches instantly without re-auth).
 
+# tcycle — switch the active profile to the next cluster you hold live
+# credentials on. `tsh login --proxy=<cluster>` with a valid cert switches
+# instantly (no re-auth), so this is a free rotation through your live
+# sessions. `tcycle -n` prints the target without switching.
+#
+# A ZLE widget is included for key-driven cycling; opt in by setting
+# TELEPORT_ZSH_CYCLE_KEY before the plugin loads, e.g.:
+#   TELEPORT_ZSH_CYCLE_KEY='^[t'   # Alt-T cycles cluster, prompt updates live
+tcycle() {
+  emulate -L zsh
+  setopt local_options null_glob
+  local dry=""
+  [[ $1 == -n ]] && dry=1
+  local tdir=${TELEPORT_HOME:-$HOME/.tsh}
+  local active=""
+  [[ -r $tdir/current-profile ]] && active=$(<$tdir/current-profile)
+  local -a yams=($tdir/*.yaml) live
+  local p
+  for p in ${(@)yams:t:r}; do
+    local -a c=($tdir/keys/$p/*.crt)
+    (( $#c )) || continue
+    _teleport_cert_meta "${c[1]}" || continue
+    (( _tp_expiry > EPOCHSECONDS )) && live+=($p)
+  done
+  if (( ! $#live )); then
+    print -u2 "tcycle: no live profiles — tsh login first (see tprofiles)"
+    return 1
+  fi
+  if (( $#live == 1 )) && [[ ${live[1]} == $active ]]; then
+    print "tcycle: only one live profile ($active)"
+    return 0
+  fi
+  local idx=${live[(Ie)$active]}          # 0 when active isn't live → picks first
+  local next=${live[$(( idx % $#live + 1 ))]}
+  if [[ -n $dry ]]; then
+    print -r -- "$next"
+    return 0
+  fi
+  if ! command tsh login --proxy=$next $next >/dev/null 2>&1; then
+    print -u2 "tcycle: switch to $next failed"
+    return 1
+  fi
+  tprofiles
+}
+
+teleport-cycle-profile() {
+  tcycle >/dev/null 2>&1
+  zle && zle reset-prompt
+}
+if (( $+functions[zle] )) || zmodload -e zsh/zle 2>/dev/null; then
+  zle -N teleport-cycle-profile 2>/dev/null
+  [[ -n $TELEPORT_ZSH_CYCLE_KEY ]] && bindkey "$TELEPORT_ZSH_CYCLE_KEY" teleport-cycle-profile
+fi
+
 tprofiles() {
   emulate -L zsh
   setopt local_options null_glob

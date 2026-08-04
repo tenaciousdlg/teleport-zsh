@@ -46,10 +46,13 @@ cost is ~0.5ms.
 - **Multi-profile awareness** — tsh can hold several cluster profiles at
   once. `tprofiles` lists them all: every known cluster with its identity,
   TTL (or `EXPIRED` / logged out), and an `▸` on the active one. The prompt
-  appends `+N` only when you hold **live** credentials on N *other* clusters
-  — expired and logged-out profiles are inventory, not exposure, so they
-  never make prompt noise. `tsh login --proxy=<TAB>` completes known
-  clusters — with a still-valid cert that switches instantly, no re-auth.
+  shows *other clusters you hold live credentials on* by name (`+blackhat`),
+  falling back to a count when names would crowd it — expired and logged-out
+  profiles are inventory, not exposure, so they never make prompt noise.
+  `tcycle` rotates the active profile through your live sessions (instant —
+  a valid cert needs no re-auth), `tcycle -n` previews the target, and
+  `TELEPORT_ZSH_CYCLE_KEY='^[t'` binds cycling to a key with a live prompt
+  refresh. `tsh login --proxy=<TAB>` completes known clusters too.
 - **fzf pickers** — `tss` (node → ssh), `tdb` (database → connect),
   `tapp` (app → login), `trec` (recording → play). Each pushes the real `tsh`
   command onto history, so demos show replayable commands, not magic.
@@ -120,7 +123,8 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
 | `TPERSONA_TINT` | per-name dark color | window tint; `#rrggbb` or `off` |
 | `TSH_DEMO_PERSONAS` | `bob alice` | names completed for `tpersona`/`tlock`/`tunlock` |
 | `TSH_DB_USERS` / `TSH_DB_NAMES` | `writer reader` / `postgres` | values offered for `--db-user=` / `--db-name=` |
-| `TELEPORT_ZSH_NO_OTHERS` | unset | set to `1` to hide the `+N` other-live-sessions tail |
+| `TELEPORT_ZSH_OTHERS` | names | other-live-sessions tail style: names → `+blackhat`, `count` → `+1`, `off` to hide |
+| `TELEPORT_ZSH_CYCLE_KEY` | unset | key to bind `tcycle` to (e.g. `'^[t'` for Alt-T); set before the plugin loads |
 | `TELEPORT_ZSH_NO_GUARD` | unset | set to `1` to not wrap `terraform` at all |
 | `TF_DESTROY_GUARD` | on | `off` to bypass the guard per-invocation (`TF_DESTROY_GUARD=off terraform destroy …`) |
 
