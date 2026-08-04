@@ -7,6 +7,8 @@ your cert has left, and whether you're running with elevated (JIT) access —
 plus tab-completion that knows your actual nodes, databases, apps, and
 recordings.
 
+![teleport-zsh demo](assets/demo.gif)
+
 ```
 ~/work                                          acme ▸ chris 7h32m
 ❯ tsh ssh ubuntu@<TAB>
