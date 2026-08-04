@@ -135,10 +135,18 @@ prompt_teleport() {
     fi
   fi
 
+  # Other profiles tsh knows about (tsh status would list them) — shown as
+  # a +N tail; `tprofiles` expands it. TELEPORT_ZSH_NO_OTHERS=1 hides it.
+  local others=""
+  if [[ -z $TELEPORT_ZSH_NO_OTHERS ]]; then
+    local -a allprofs=($tdir/*.yaml(N))
+    (( $#allprofs > 1 )) && others=" +$(( $#allprofs - 1 ))"
+  fi
+
   # Persona shells stay magenta while healthy so bob/alice terminals are
   # unmistakable; low-TTL warning colors still win (safety over identity).
   [[ -n $persona && $state == OK ]] && fg=5
-  p10k segment -s "${persona}${state}" -f $fg -i "$icon" -t "${cluster} ▸ ${user}${elev} ${ttl}"
+  p10k segment -s "${persona}${state}" -f $fg -i "$icon" -t "${cluster} ▸ ${user}${elev} ${ttl}${others}"
 }
 
 # Safe under p10k instant prompt: local files only, no side effects that matter.

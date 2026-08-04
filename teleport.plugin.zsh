@@ -8,6 +8,7 @@
 typeset -g TELEPORT_ZSH_DIR=${0:A:h}
 
 source "$TELEPORT_ZSH_DIR/lib/prompt.zsh"
+source "$TELEPORT_ZSH_DIR/lib/profiles.zsh"   # tprofiles (uses prompt.zsh cert helpers)
 source "$TELEPORT_ZSH_DIR/lib/complete.zsh"   # must load before fzf.zsh (shared cache helpers)
 source "$TELEPORT_ZSH_DIR/lib/fzf.zsh"
 source "$TELEPORT_ZSH_DIR/lib/persona.zsh"

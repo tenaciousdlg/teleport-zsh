@@ -157,6 +157,10 @@ _tsh_flag_value() {
       compadd -P '--db-name=' ${=TSH_DB_NAMES:-postgres}; return 0 ;;
     --auth=*)
       compadd -P '--auth=' okta local passwordless; return 0 ;;
+    --proxy=*)
+      local -a knownprofs
+      knownprofs=(${TELEPORT_HOME:-$HOME/.tsh}/*.yaml(N:t:r))
+      (( $#knownprofs )) && compadd -P '--proxy=' -a knownprofs; return 0 ;;
     --login=*)
       local -a logins; logins=(${(f)"$(_tsh_logins)"})
       (( $#logins )) && compadd -P '--login=' -a logins; return 0 ;;
