@@ -135,12 +135,24 @@ prompt_teleport() {
     fi
   fi
 
-  # Other profiles tsh knows about (tsh status would list them) — shown as
-  # a +N tail; `tprofiles` expands it. TELEPORT_ZSH_NO_OTHERS=1 hides it.
+  # Other clusters you hold LIVE credentials on right now — expired or
+  # logged-out profiles don't count (they're inventory, not exposure; see
+  # tprofiles for the full list). TELEPORT_ZSH_NO_OTHERS=1 hides the tail.
+  # Safe to reuse _teleport_cert_meta here: the active cert's values were
+  # captured into locals above.
   local others=""
   if [[ -z $TELEPORT_ZSH_NO_OTHERS ]]; then
-    local -a allprofs=($tdir/*.yaml(N))
-    (( $#allprofs > 1 )) && others=" +$(( $#allprofs - 1 ))"
+    local op live=0
+    local -a ocerts oyams
+    oyams=($tdir/*.yaml(N))
+    for op in ${(@)oyams:t:r}; do
+      [[ $op == $prof ]] && continue
+      ocerts=($tdir/keys/$op/*.crt(N))
+      (( $#ocerts )) || continue
+      _teleport_cert_meta "${ocerts[1]}" || continue
+      (( _tp_expiry > EPOCHSECONDS )) && (( live++ ))
+    done
+    (( live )) && others=" +$live"
   fi
 
   # Persona shells stay magenta while healthy so bob/alice terminals are
