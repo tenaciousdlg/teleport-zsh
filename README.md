@@ -36,6 +36,14 @@ cost is ~0.5ms.
 - **Prompt segment** (powerlevel10k) — cluster ▸ user, cert TTL countdown,
   JIT elevation marker (`↑role`, detected from the cert itself), persona
   coloring, plus one-shot expiry warnings at <15m and at expiry.
+- **Reviewer badge** — `✉2` in the segment when access requests are pending
+  on the active cluster. Cache-only on the prompt path: a background
+  `tsh request ls` refresh runs at most once per `TELEPORT_ZSH_REQ_TTL`
+  (60s), so a slow cluster can never freeze your shell. Approvals/drops
+  reflect on the next prompt.
+- **Cluster color accents** — `TELEPORT_ZSH_CLUSTER_COLORS=('prod-*' 1 ...)`
+  tints the segment by cluster pattern, so anything prod-shaped reads hot
+  even when the cert is healthy.
 - **Dynamic completion** for `tsh` — nodes, databases, apps, kube clusters,
   pending access requests, session recordings, and flag values
   (`--mfa-mode=`, `--db-user=`, …), with labels shown next to candidates.
@@ -56,6 +64,10 @@ cost is ~0.5ms.
 - **fzf pickers** — `tss` (node → ssh), `tdb` (database → connect),
   `tapp` (app → login), `trec` (recording → play). Each pushes the real `tsh`
   command onto history, so demos show replayable commands, not magic.
+  `tss -a` spans **every cluster you're live on** (`blackhat/dev-ssh-0`,
+  `presales/prod-host`, …) and connects via `--proxy` without switching
+  your active profile. `tprofiles` also lists any long-running local
+  tunnels (`tsh proxy db` and friends) — open doors people forget.
 - **Persona shells** — `tpersona bob` opens a subshell with
   `TELEPORT_HOME=~/.tsh-bob`: tab title, window background tint (OSC 11 —
   iTerm2/Ghostty/Warp), iTerm2 badge, auto-login. Never confuse your admin
@@ -135,6 +147,9 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
 | `TSH_DB_USERS` / `TSH_DB_NAMES` | `writer reader` / `postgres` | values offered for `--db-user=` / `--db-name=` |
 | `TELEPORT_ZSH_OTHERS` | names | other-live-sessions tail style: names → `+blackhat`, `count` → `+1`, `off` to hide |
 | `TELEPORT_ZSH_CYCLE_KEY` | unset | key to bind `tcycle` to (e.g. `'^[t'` for Alt-T); set before the plugin loads |
+| `TELEPORT_ZSH_REQUESTS` | on | `off` disables the pending-requests badge |
+| `TELEPORT_ZSH_REQ_TTL` | 60 | seconds between background request refreshes |
+| `TELEPORT_ZSH_CLUSTER_COLORS` | unset | pattern/color pairs: `('prod-*' 1 '*.teleport.sh' 208)` |
 | `TELEPORT_ZSH_NO_TCTL` | unset | set to `1` to not wrap `tctl` (no target banner) |
 | `TELEPORT_ZSH_NO_GUARD` | unset | set to `1` to not wrap `terraform` at all |
 | `TF_DESTROY_GUARD` | on | `off` to bypass the guard per-invocation (`TF_DESTROY_GUARD=off terraform destroy …`) |

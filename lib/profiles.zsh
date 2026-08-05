@@ -10,6 +10,29 @@
 # Switch with `tsh login --proxy=<TAB>` (completion offers known profiles;
 # a still-valid cert switches instantly without re-auth).
 
+# Profiles you hold live (unexpired) certs for → $reply. Shared by
+# tcycle, tss -a, and anything else that iterates live sessions.
+_teleport_live_profiles() {
+  emulate -L zsh
+  setopt local_options null_glob
+  local tdir=${TELEPORT_HOME:-$HOME/.tsh} p
+  local -a yams=($tdir/*.yaml)
+  reply=()
+  for p in ${(@)yams:t:r}; do
+    local -a c=($tdir/keys/$p/*.crt)
+    (( $#c )) || continue
+    _teleport_cert_meta "${c[1]}" || continue
+    (( _tp_expiry > EPOCHSECONDS )) && reply+=($p)
+  done
+}
+
+# Proxy address for a known profile (web_proxy_addr from its YAML).
+_teleport_proxy_addr() {
+  local tdir=${TELEPORT_HOME:-$HOME/.tsh} addr
+  addr=$(command grep -m1 '^web_proxy_addr:' "$tdir/$1.yaml" 2>/dev/null | command awk '{print $2}')
+  print -r -- "${addr:-$1:443}"
+}
+
 # tcycle — switch the active profile to the next cluster you hold live
 # credentials on. `tsh login --proxy=<cluster>` with a valid cert switches
 # instantly (no re-auth), so this is a free rotation through your live
@@ -26,14 +49,8 @@ tcycle() {
   local tdir=${TELEPORT_HOME:-$HOME/.tsh}
   local active=""
   [[ -r $tdir/current-profile ]] && active=$(<$tdir/current-profile)
-  local -a yams=($tdir/*.yaml) live
-  local p
-  for p in ${(@)yams:t:r}; do
-    local -a c=($tdir/keys/$p/*.crt)
-    (( $#c )) || continue
-    _teleport_cert_meta "${c[1]}" || continue
-    (( _tp_expiry > EPOCHSECONDS )) && live+=($p)
-  done
+  local -a live
+  _teleport_live_profiles; live=($reply)
   if (( ! $#live )); then
     print -u2 "tcycle: no live profiles — tsh login first (see tprofiles)"
     return 1
@@ -53,9 +70,7 @@ tcycle() {
   # right form can decline to move the pointer, so verify and set it
   # directly if needed (current-profile is a one-line client-side pointer
   # to a profile whose cert we just checked is live).
-  local addr
-  addr=$(command grep -m1 '^web_proxy_addr:' "$tdir/$next.yaml" 2>/dev/null | command awk '{print $2}')
-  [[ -z $addr ]] && addr=$next:443
+  local addr=$(_teleport_proxy_addr $next)
   command tsh login --proxy=$addr >/dev/null 2>&1
   if [[ "$(<$tdir/current-profile)" != $next ]]; then
     print -r -- "$next" > "$tdir/current-profile"
@@ -130,4 +145,15 @@ tprofiles() {
     f=(${(s:|:)r})
     print -P -- "%B${f[1]}%b ${(r:$w1:)f[2]}  ${(r:$w2:)f[3]}  %F{${f[4]}}${f[5]}%f"
   done
+
+  # Live local proxies/tunnels — long-running credential conduits that are
+  # easy to forget (each one is an open door until you kill it).
+  local -a tun
+  tun=(${(f)"$(command ps -eo command 2>/dev/null |
+        command grep -E '^[^ ]*/?tsh (proxy (db|ssh|app|aws|kube)|db connect)' 2>/dev/null)"})
+  if (( $#tun )); then
+    print -P "%F{3}local tunnels:%f"
+    local t
+    for t in $tun; do print -r -- "  ${t[1,100]}"; done
+  fi
 }

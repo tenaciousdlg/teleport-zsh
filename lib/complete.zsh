@@ -122,10 +122,12 @@ _tsh_add() {  # $1 kind, $2 ttl, $3... fetch cmd -- remaining args go to compadd
   compadd "${extra[@]}" -ld disp -a names
 }
 
-# SSH login principals from the local cert (no network), filtered of internals.
+# SSH login principals from the local cert (no network), filtered of
+# internals. Optional arg selects a profile other than the active one.
 _tsh_logins() {
   local tdir=${TELEPORT_HOME:-$HOME/.tsh}
-  local prof; prof=$(_tsh_current_profile) || return 1
+  local prof=${1:-$(_tsh_current_profile)}
+  [[ -n $prof ]] || return 1
   local -a certs; certs=($tdir/keys/$prof/*-ssh/*-cert.pub(N))
   (( $#certs )) || return 1
   ssh-keygen -L -f "${certs[1]}" 2>/dev/null |

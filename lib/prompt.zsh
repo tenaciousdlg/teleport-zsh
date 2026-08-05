@@ -164,10 +164,32 @@ prompt_teleport() {
     fi
   fi
 
+  # Reviewer badge: pending access requests on this cluster (cache-only
+  # read; lib/requests.zsh owns the background refresh).
+  local pend=""
+  if (( $+functions[_teleport_pending_count] )); then
+    _teleport_pending_count "$prof"
+    (( _tp_pendingreq > 0 )) && pend=" ✉$_tp_pendingreq"
+  fi
+
+  # Cluster color accents: TELEPORT_ZSH_CLUSTER_COLORS=(pattern color ...)
+  # e.g. ('prod-*' 1 '*.teleport.sh' 208) — anything prod-shaped reads hot
+  # even when healthy. Warning/persona colors still take precedence.
+  if [[ $state == OK && -z $persona ]] && (( $#TELEPORT_ZSH_CLUSTER_COLORS )); then
+    local _i _pat
+    for (( _i=1; _i + 1 <= $#TELEPORT_ZSH_CLUSTER_COLORS; _i+=2 )); do
+      _pat=${TELEPORT_ZSH_CLUSTER_COLORS[_i]}
+      if [[ $prof == ${~_pat} || $cluster == ${~_pat} ]]; then
+        fg=${TELEPORT_ZSH_CLUSTER_COLORS[_i+1]}
+        break
+      fi
+    done
+  fi
+
   # Persona shells stay magenta while healthy so bob/alice terminals are
   # unmistakable; low-TTL warning colors still win (safety over identity).
   [[ -n $persona && $state == OK ]] && fg=5
-  p10k segment -s "${persona}${state}" -f $fg -i "$icon" -t "${cluster} ▸ ${user}${elev} ${ttl}${others}"
+  p10k segment -s "${persona}${state}" -f $fg -i "$icon" -t "${cluster} ▸ ${user}${pend}${elev} ${ttl}${others}"
 }
 
 # Safe under p10k instant prompt: local files only, no side effects that matter.

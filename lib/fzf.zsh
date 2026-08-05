@@ -21,6 +21,7 @@ _tsh_fzf_pick() {  # $1 kind, $2 ttl, $3 prompt, rest = fetch cmd → picked nam
 }
 
 tss() {
+  if [[ $1 == -a ]]; then _tss_all; return $?; fi
   local host login
   host=$(_tsh_fzf_pick nodes 120 node command tsh ls -f json) || return
   local -a logins; logins=(${(f)"$(_tsh_logins)"})
@@ -31,6 +32,43 @@ tss() {
   fi
   print -s "tsh ssh ${login}@${host}"
   command tsh ssh ${login}@${host}
+}
+
+# tss -a — one picker over every cluster you hold live credentials on.
+# Rows are `cluster/host  labels`; fetches use `tsh ls --proxy=<addr>`,
+# which selects the matching profile per-command WITHOUT moving the active
+# pointer, and the connect goes over --proxy the same way — fully stateless.
+_tss_all_rows() {
+  local p addr
+  _teleport_live_profiles
+  for p in $reply; do
+    addr=$(_teleport_proxy_addr $p)
+    _tsh_parse nodes =(command tsh ls --proxy=$addr -f json 2>/dev/null) |
+      while IFS=$'\t' read -r n d; do
+        print -r -- "${p%%.*}/${n}"$'\t'"$d"
+      done
+  done
+}
+
+_tss_all() {
+  (( $+commands[fzf] )) || { print -u2 "fzf not installed (brew install fzf)"; return 1 }
+  local line
+  line=$(_tss_all_rows | column -t -s$'\t' |
+         fzf --height=50% --reverse --prompt='cluster/node ❯ ') || return 1
+  local sel=${line%% *} clshort=${line%%/*} host=${${line%% *}#*/}
+  local p prof=""
+  _teleport_live_profiles
+  for p in $reply; do [[ ${p%%.*} == $clshort ]] && prof=$p && break; done
+  [[ -n $prof ]] || { print -u2 "tss: no live profile for $clshort"; return 1 }
+  local addr=$(_teleport_proxy_addr $prof) login
+  local -a logins; logins=(${(f)"$(_tsh_logins $prof)"})
+  if (( $#logins > 1 )); then
+    login=$(print -l -- $logins | fzf --height=20% --reverse --prompt="login@$clshort ❯ ") || return
+  else
+    login=${logins[1]:-$USER}
+  fi
+  print -s "tsh ssh --proxy=${addr} ${login}@${host}"
+  command tsh ssh --proxy=$addr ${login}@${host}
 }
 
 tdb() {
