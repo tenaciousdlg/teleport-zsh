@@ -48,9 +48,17 @@ tcycle() {
     print -r -- "$next"
     return 0
   fi
-  if ! command tsh login --proxy=$next $next >/dev/null 2>&1; then
-    print -u2 "tcycle: switch to $next failed"
-    return 1
+  # Use the profile's exact web_proxy_addr — a bare hostname makes tsh's
+  # already-logged-in fast path print status without switching. And even the
+  # right form can decline to move the pointer, so verify and set it
+  # directly if needed (current-profile is a one-line client-side pointer
+  # to a profile whose cert we just checked is live).
+  local addr
+  addr=$(command grep -m1 '^web_proxy_addr:' "$tdir/$next.yaml" 2>/dev/null | command awk '{print $2}')
+  [[ -z $addr ]] && addr=$next:443
+  command tsh login --proxy=$addr >/dev/null 2>&1
+  if [[ "$(<$tdir/current-profile)" != $next ]]; then
+    print -r -- "$next" > "$tdir/current-profile"
   fi
   tprofiles
 }
