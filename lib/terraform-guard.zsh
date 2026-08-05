@@ -55,6 +55,13 @@ PY
   [[ -n $backend ]]  && print -u2 -P "   %Bbackend%b    $backend"
   (( $#proxies ))    && print -u2 -P "   %F{1}%Bteleport%b   ${(j:, :)proxies}  ← blast radius%f"
   [[ -n $AWS_PROFILE ]] && print -u2 -P "   %Baws%b        AWS_PROFILE=$AWS_PROFILE"
+  # With several live sessions, "wrong active cluster" is the easy mistake:
+  # tctl/provider auth follows the ACTIVE profile, not the directory.
+  local tpdir=${TELEPORT_HOME:-$HOME/.tsh} activeprof=""
+  [[ -r $tpdir/current-profile ]] && activeprof=$(<$tpdir/current-profile)
+  if [[ -n $activeprof ]] && (( $#proxies )) && [[ ${proxies[1]%%:*} != $activeprof ]]; then
+    print -u2 -P "   %F{1}%B⚠ mismatch%b  active tsh session is ${activeprof%%.*}, this config targets ${${proxies[1]%%:*}%%.*}%f"
+  fi
   if (( $#tffiles )) && grep -qsE 'teleport_operator|teleport-cluster' -- $tffiles 2>/dev/null; then
     print -u2 -P "   %F{3}hint: if destroy hangs on Teleport CRDs, strip finalizers:%f"
     print -u2 -P "   %F{3}kubectl get crds -o name | grep teleport | xargs -I{} kubectl patch {} -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge%f"

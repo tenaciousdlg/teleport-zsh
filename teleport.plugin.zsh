@@ -13,6 +13,7 @@ source "$TELEPORT_ZSH_DIR/lib/complete.zsh"   # must load before fzf.zsh (shared
 source "$TELEPORT_ZSH_DIR/lib/fzf.zsh"
 source "$TELEPORT_ZSH_DIR/lib/persona.zsh"
 source "$TELEPORT_ZSH_DIR/lib/demo.zsh"
+source "$TELEPORT_ZSH_DIR/lib/tctl.zsh"
 
 # The destroy guard wraps `terraform`; opt out with TELEPORT_ZSH_NO_GUARD=1.
 [[ -n $TELEPORT_ZSH_NO_GUARD ]] || source "$TELEPORT_ZSH_DIR/lib/terraform-guard.zsh"

@@ -176,7 +176,10 @@ instant_prompt_teleport() { prompt_teleport }
 # One-shot expiry warnings: the prompt segment is passive; this taps you on
 # the shoulder exactly once per cert when it crosses <15m, and once when it
 # expires. A fresh login mints a new cert (new expiry) and re-arms both.
-typeset -gA _tp_warned
+# Non-active sessions get a transition notice too: if a cluster was seen
+# LIVE earlier in this shell and its cert expires, one line says so —
+# otherwise the +name tail just silently vanishes.
+typeset -gA _tp_warned _tp_seen_live
 
 _teleport_ttl_warn() {
   local tdir=${TELEPORT_HOME:-$HOME/.tsh} prof
@@ -190,14 +193,32 @@ _teleport_ttl_warn() {
   local left=$(( _tp_expiry - EPOCHSECONDS ))
   local key="${certs[1]}:${_tp_expiry}" short=${prof%%.*}
   if (( left <= 0 )); then
-    [[ -n ${_tp_warned[${key}:expired]} ]] && return 0
-    _tp_warned[${key}:expired]=1
-    print -P "%F{1}⚠ teleport cert for ${short} has expired — tsh login%f"
+    if [[ -z ${_tp_warned[${key}:expired]} ]]; then
+      _tp_warned[${key}:expired]=1
+      print -P "%F{1}⚠ teleport cert for ${short} has expired — tsh login%f"
+    fi
   elif (( left < 900 )); then
-    [[ -n ${_tp_warned[${key}:crit]} ]] && return 0
-    _tp_warned[${key}:crit]=1
-    print -P "%F{3}⚠ teleport cert for ${short} expires in $(( left / 60 ))m — finish up or re-login%f"
+    if [[ -z ${_tp_warned[${key}:crit]} ]]; then
+      _tp_warned[${key}:crit]=1
+      print -P "%F{3}⚠ teleport cert for ${short} expires in $(( left / 60 ))m — finish up or re-login%f"
+    fi
   fi
+
+  # live→expired transitions on the OTHER profiles
+  local -a oyams=($tdir/*.yaml(N)) ocerts
+  local op
+  for op in ${(@)oyams:t:r}; do
+    [[ $op == $prof ]] && continue
+    ocerts=($tdir/keys/$op/*.crt(N))
+    (( $#ocerts )) || continue
+    _teleport_cert_meta "${ocerts[1]}" || continue
+    if (( _tp_expiry > EPOCHSECONDS )); then
+      _tp_seen_live[$op]=1
+    elif [[ -n ${_tp_seen_live[$op]} && -z ${_tp_warned[other:$op:$_tp_expiry]} ]]; then
+      _tp_warned[other:$op:$_tp_expiry]=1
+      print -P "%F{3}⚠ teleport session on ${op%%.*} expired (was in your +tail)%f"
+    fi
+  done
 }
 
 autoload -Uz add-zsh-hook 2>/dev/null && add-zsh-hook precmd _teleport_ttl_warn

@@ -66,7 +66,17 @@ cost is ~0.5ms.
 - **Terraform destroy guard** — intercepts `terraform destroy` /
   `apply -destroy`, shows the workspace, backend, and the Teleport proxy the
   config talks to (the blast radius), and requires typing the target's name.
-  Born from a real incident.
+  With multiple live sessions it also flags when your *active* tsh session
+  doesn't match the cluster the config targets — the easy mistake once
+  switching is cheap. Born from a real incident.
+- **tctl target banner** — tctl acts on whatever cluster is active; before
+  any mutating subcommand (`rm`, `create`, `edit`, `users`, `lock`, …) a dim
+  one-liner names the target: `tctl → acme.example.com`. Read-only commands
+  stay silent (`TELEPORT_ZSH_NO_TCTL=1` disables the wrapper).
+- **Session lifecycle notices** — one-shot warnings when the active cert
+  crosses <15m and at expiry, plus a transition notice when a session on
+  *another* cluster (one you'd seen live in this shell) expires — otherwise
+  its `+name` would just silently vanish from the prompt.
 
 ## Requirements
 
@@ -125,6 +135,7 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
 | `TSH_DB_USERS` / `TSH_DB_NAMES` | `writer reader` / `postgres` | values offered for `--db-user=` / `--db-name=` |
 | `TELEPORT_ZSH_OTHERS` | names | other-live-sessions tail style: names → `+blackhat`, `count` → `+1`, `off` to hide |
 | `TELEPORT_ZSH_CYCLE_KEY` | unset | key to bind `tcycle` to (e.g. `'^[t'` for Alt-T); set before the plugin loads |
+| `TELEPORT_ZSH_NO_TCTL` | unset | set to `1` to not wrap `tctl` (no target banner) |
 | `TELEPORT_ZSH_NO_GUARD` | unset | set to `1` to not wrap `terraform` at all |
 | `TF_DESTROY_GUARD` | on | `off` to bypass the guard per-invocation (`TF_DESTROY_GUARD=off terraform destroy …`) |
 
