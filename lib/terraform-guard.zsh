@@ -56,9 +56,13 @@ PY
   (( $#proxies ))    && print -u2 -P "   %F{1}%Bteleport%b   ${(j:, :)proxies}  ← blast radius%f"
   [[ -n $AWS_PROFILE ]] && print -u2 -P "   %Baws%b        AWS_PROFILE=$AWS_PROFILE"
   # With several live sessions, "wrong active cluster" is the easy mistake:
-  # tctl/provider auth follows the ACTIVE profile, not the directory.
+  # tctl/provider auth follows the ACTIVE profile, not the directory. Always
+  # show the active session — infra layers (VPC/EKS) often host a cluster
+  # without declaring a teleport provider, so the tf files alone can't name
+  # the blast radius.
   local tpdir=${TELEPORT_HOME:-$HOME/.tsh} activeprof=""
   [[ -r $tpdir/current-profile ]] && activeprof=$(<$tpdir/current-profile)
+  [[ -n $activeprof ]] && print -u2 -P "   %Btsh%b        active session: ${activeprof%%.*}"
   if [[ -n $activeprof ]] && (( $#proxies )) && [[ ${proxies[1]%%:*} != $activeprof ]]; then
     print -u2 -P "   %F{1}%B⚠ mismatch%b  active tsh session is ${activeprof%%.*}, this config targets ${${proxies[1]%%:*}%%.*}%f"
   fi
