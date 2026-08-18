@@ -4,13 +4,20 @@
 #
 #   tpersona bob                       # bob on your current cluster
 #   tpersona alice other.example.com   # explicit proxy
+#   TPERSONA_AUTH=okta tpersona bob    # SSO persona (see below)
 #
 # Sets the terminal tab title (BOB — acme), tints the window background
 # via OSC 11 (works in iTerm2, Ghostty, Warp; harmlessly ignored elsewhere),
-# adds an iTerm2 badge when available, logs in with --auth=local if the
-# persona has no live cert, and drops into a subshell where the teleport
-# prompt segment renders in persona magenta. Exit the subshell to return to
-# your own identity; title/tint/badge are restored.
+# adds an iTerm2 badge when available, logs the persona in if it has no live
+# cert, and drops into a subshell where the teleport prompt segment renders
+# in persona magenta. Exit the subshell to return to your own identity;
+# title/tint/badge are restored.
+#
+# Auth: --auth=local by default. For SSO personas set TPERSONA_AUTH to the
+# connector name (e.g. okta-integrator). SSO logins run with --browser=none
+# on purpose: your default browser holds YOUR IdP session and would silently
+# log the persona in as you — copy the printed URL into an incognito/other-
+# profile window and sign in as the persona there.
 #
 # Proxy resolution: explicit arg → TELEPORT_PERSONA_PROXY → the cluster
 # your main identity (~/.tsh) is currently logged into.
@@ -50,8 +57,18 @@ tpersona() {
     print -n "\e]1337;SetBadgeFormat=$(print -n "${(U)name}" | base64)\a"
 
   if ! TELEPORT_HOME=$phome command tsh status &>/dev/null; then
-    print -P "%F{5}logging in as ${name}@${proxy} (local auth)...%f"
-    if ! TELEPORT_HOME=$phome command tsh login --proxy=${proxy}:443 $proxy --auth=local --user=$name; then
+    local auth=${TPERSONA_AUTH:-local}
+    local -a login_args
+    if [[ $auth == local ]]; then
+      print -P "%F{5}logging in as ${name}@${proxy} (local auth)...%f"
+      login_args=(--auth=local --user=$name)
+    else
+      # SSO: never use the default browser — it carries YOUR IdP session and
+      # would log the persona in as you. Print the URL for an incognito window.
+      print -P "%F{5}logging in via ${auth} SSO — open the URL below in an INCOGNITO window and sign in as ${name}%f"
+      login_args=(--auth=$auth --browser=none)
+    fi
+    if ! TELEPORT_HOME=$phome command tsh login --proxy=${proxy}:443 $proxy $login_args; then
       print -n "\e]0;\a"
       [[ $tint != off ]] && print -n "\e]111;\a"
       [[ $TERM_PROGRAM == iTerm.app ]] && print -n "\e]1337;SetBadgeFormat=\a"
