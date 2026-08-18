@@ -212,6 +212,7 @@ _teleport_ttl_warn() {
   certs=($tdir/keys/$prof/*.crt(N))
   (( $#certs )) || return 0
   _teleport_cert_meta "${certs[1]}" || return 0
+  (( $+functions[_teleport_stall_warn] )) && _teleport_stall_warn "$prof"
   local left=$(( _tp_expiry - EPOCHSECONDS ))
   local key="${certs[1]}:${_tp_expiry}" short=${prof%%.*}
   if (( left <= 0 )); then
