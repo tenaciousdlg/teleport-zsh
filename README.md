@@ -75,6 +75,18 @@ cost is ~0.5ms.
 - **Demo helpers** — `tlock bob` / `tunlock bob` for the
   "join live, then lock" beat (self-expiring TTL so a persona can't be left
   locked).
+- **Terraform credentials** — `tfenv` exports `TF_TELEPORT_ADDR` /
+  `TF_TELEPORT_IDENTITY_FILE_PATH` for the Teleport Terraform provider by
+  re-certing a persistent Machine ID bot over its bound keypair. No
+  admin-action MFA: `eval $(tctl terraform env)` mints a throwaway
+  bot+role+token every run (three hardware-key taps on MFA-enforcing
+  clusters); a persistent bot is silent. Keys off your active profile
+  (`tfenv` → `acme` from `acme.example.com`), skips the re-cert while the
+  identity is still fresh (bound-keypair recoveries are a budget, not a
+  free retry), and prints the real error when a join fails. Cluster-side
+  recipe in the lib header — create the token with `tctl`, not the
+  Kubernetes operator (operator reconciles re-arm onboarding and silently
+  break the binding).
 - **Terraform destroy guard** — intercepts `terraform destroy` /
   `apply -destroy`, shows the workspace, backend, and the Teleport proxy the
   config talks to (the blast radius), and requires typing the target's name.
