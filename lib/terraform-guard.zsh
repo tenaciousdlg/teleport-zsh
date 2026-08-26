@@ -1,6 +1,6 @@
-# Destroy guard for terraform — born from the 2026-07-29 incident where a
-# `terraform destroy` in the wrong directory took out presales' prod-access
-# role. Before any destroy (or apply -destroy) it shows exactly what's in the
+# Destroy guard for terraform — born from a 2026-07-29 incident where a
+# `terraform destroy` in the wrong directory took out a demo cluster's
+# prod-access role. Before any destroy (or apply -destroy) it shows exactly what's in the
 # blast radius — directory, workspace, backend, Teleport proxy if one is
 # configured — and requires typing the target's name to proceed.
 #

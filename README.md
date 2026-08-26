@@ -10,7 +10,7 @@ recordings.
 ![teleport-zsh demo](assets/demo.gif)
 
 ```
-~/work                                          acme ▸ chris 7h32m
+~/work                                          acme ▸ sam 7h32m
 ❯ tsh ssh ubuntu@<TAB>
 dev-ssh-0   disk_used=18%,env=dev,hostname=dev-ssh-0,team=platform
 dev-ssh-1   disk_used=18%,env=dev,hostname=dev-ssh-1,team=platform
@@ -21,10 +21,10 @@ The prompt segment, live:
 
 | State | Prompt | Meaning |
 |---|---|---|
-| Healthy | ` acme ▸ chris 7h32m` (green) | >4h left on the cert |
+| Healthy | ` acme ▸ sam 7h32m` (green) | >4h left on the cert |
 | **Elevated** | ` acme ▸ bob ↑staging 5h02m` | an approved access request is assumed — the role gained is shown |
 | Persona | ` acme ▸ bob 6h02m` (magenta) | this shell is a secondary identity (`TELEPORT_HOME`) |
-| Expiring | ` acme ▸ chris 43m` (yellow → red) | <1h / <15m; a one-shot warning also prints |
+| Expiring | ` acme ▸ sam 43m` (yellow → red) | <1h / <15m; a one-shot warning also prints |
 | Logged out | ` logged out` (dim) | no live cert |
 
 Everything is **zero-network on the prompt path** — the segment reads only
@@ -54,7 +54,7 @@ cost is ~0.5ms.
 - **Multi-profile awareness** — tsh can hold several cluster profiles at
   once. `tprofiles` lists them all: every known cluster with its identity,
   TTL (or `EXPIRED` / logged out), and an `▸` on the active one. The prompt
-  shows *other clusters you hold live credentials on* by name (`+blackhat`),
+  shows *other clusters you hold live credentials on* by name (`+staging`),
   falling back to a count when names would crowd it — expired and logged-out
   profiles are inventory, not exposure, so they never make prompt noise.
   `tcycle` rotates the active profile through your live sessions (instant —
@@ -64,8 +64,8 @@ cost is ~0.5ms.
 - **fzf pickers** — `tss` (node → ssh), `tdb` (database → connect),
   `tapp` (app → login), `trec` (recording → play). Each pushes the real `tsh`
   command onto history, so demos show replayable commands, not magic.
-  `tss -a` spans **every cluster you're live on** (`blackhat/dev-ssh-0`,
-  `presales/prod-host`, …) and connects via `--proxy` without switching
+  `tss -a` spans **every cluster you're live on** (`acme/dev-ssh-0`,
+  `staging/prod-host`, …) and connects via `--proxy` without switching
   your active profile. `tprofiles` also lists any long-running local
   tunnels (`tsh proxy db` and friends) — open doors people forget.
 - **Persona shells** — `tpersona bob` opens a subshell with
@@ -157,7 +157,7 @@ typeset -g POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(
 | `TPERSONA_TINT` | per-name dark color | window tint; `#rrggbb` or `off` |
 | `TSH_DEMO_PERSONAS` | `bob alice` | names completed for `tpersona`/`tlock`/`tunlock` |
 | `TSH_DB_USERS` / `TSH_DB_NAMES` | `writer reader` / `postgres` | values offered for `--db-user=` / `--db-name=` |
-| `TELEPORT_ZSH_OTHERS` | names | other-live-sessions tail style: names → `+blackhat`, `count` → `+1`, `off` to hide |
+| `TELEPORT_ZSH_OTHERS` | names | other-live-sessions tail style: names → `+staging`, `count` → `+1`, `off` to hide |
 | `TELEPORT_ZSH_CYCLE_KEY` | unset | key to bind `tcycle` to (e.g. `'^[t'` for Alt-T); set before the plugin loads |
 | `TELEPORT_ZSH_REQUESTS` | on | `off` disables the pending-requests badge |
 | `TELEPORT_ZSH_REQ_TTL` | 60 | seconds between background request refreshes |

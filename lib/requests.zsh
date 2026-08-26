@@ -1,6 +1,6 @@
 # Reviewer badge — pending access requests visible from the prompt:
 #
-#   ⛨ acme ▸ chris ✉1 7h32m +beta     ← someone's waiting on a review
+#   ⛨ acme ▸ sam ✉1 7h32m +beta     ← someone's waiting on a review
 #
 # Prompt-safe by construction: the segment only ever reads a cache file
 # (~/.cache/tsh-zsh/<profile>/requests.json). When the cache is older than

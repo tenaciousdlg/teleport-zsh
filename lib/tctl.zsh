@@ -4,7 +4,7 @@
 # dim one-liner names the target:
 #
 #   ❯ tctl rm roles/dev-access
-#   tctl → blackhat.teleportdemo.com
+#   tctl → acme.example.com
 #
 # Read-only subcommands (get, status, acl, ...) stay silent. Disable the
 # wrapper entirely with TELEPORT_ZSH_NO_TCTL=1 (set before the plugin loads).

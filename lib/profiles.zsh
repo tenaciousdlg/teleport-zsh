@@ -1,8 +1,8 @@
 # tprofiles — every cluster tsh knows about, at a glance. A compact,
 # color-coded answer to "what am I actually logged into right now?":
 #
-#   ▸ presales.teleportdemo.com   dlg    18m       ← active, yellow TTL
-#     blackhat.teleportdemo.com   chris  EXPIRED   ← known but dead
+#   ▸ acme.example.com      sam    18m       ← active, yellow TTL
+#     staging.example.com    sam    EXPIRED   ← known but dead
 #
 # Reads the same local files as the prompt segment (profile YAMLs +
 # certs under ${TELEPORT_HOME:-~/.tsh}); no network. The prompt segment

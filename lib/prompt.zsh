@@ -1,9 +1,9 @@
 # Teleport powerlevel10k segment — cluster ▸ identity + elevation + cert TTL.
 #
-#   ⛨ acme ▸ chris 7h32m           (green: >4h left on the TLS cert)
+#   ⛨ acme ▸ sam 7h32m           (green: >4h left on the TLS cert)
 #   ⛨ acme ▸ bob ↑staging 5h02m    (an approved access request is assumed)
 #   ⛨ acme ▸ bob 6h02m             (magenta: persona shell via TELEPORT_HOME)
-#   ⛨ acme ▸ chris 43m             (yellow <1h, red <15m / expired)
+#   ⛨ acme ▸ sam 43m             (yellow <1h, red <15m / expired)
 #   ⛨ logged out                   (dim; only shown if the tsh dir exists)
 #
 # Zero network on the prompt path: reads ${TELEPORT_HOME:-~/.tsh} only.
@@ -94,9 +94,9 @@ prompt_teleport() {
     p10k segment -s LOGGEDOUT -f 8 -i "$icon" -t 'logged out'
     return
   fi
-  local user=${certs[1]:t:r}         # chris.delagarza@example.com
-  user=${user%%@*}                   # chris.delagarza
-  user=${user%%.*}                   # chris
+  local user=${certs[1]:t:r}         # sam.jones@acme.example.com
+  user=${user%%@*}                   # sam.jones
+  user=${user%%.*}                   # sam
   local cluster=${prof%%.*}          # acme
 
   local exp="" now left ttl state fg
@@ -137,7 +137,7 @@ prompt_teleport() {
 
   # Other clusters you hold LIVE credentials on right now — expired or
   # logged-out profiles never show (they're inventory, not exposure; see
-  # tprofiles for the full list). Shown by name (+blackhat) while short,
+  # tprofiles for the full list). Shown by name (+staging) while short,
   # falling back to a count (+3) when names would crowd the prompt.
   # TELEPORT_ZSH_OTHERS=count forces the count; =off hides the tail.
   # Safe to reuse _teleport_cert_meta here: the active cert's values were
