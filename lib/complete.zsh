@@ -238,6 +238,7 @@ _tsh() {
 # the next TAB reflects reality (e.g. prod nodes right after an approved
 # request). The prompt's role baseline is deliberately left alone.
 tsh() {
+  emulate -L zsh   # callers may run sh-emulated, where (N) isn't a qualifier
   command tsh "$@"
   local rc=$?
   case ${1:-} in
