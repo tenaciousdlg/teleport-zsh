@@ -121,6 +121,10 @@ prompt_teleport() {
   if [[ -z $exp ]]; then
     ttl='?' state=WARN fg=3
   elif (( exp <= now )); then
+    # Long-expired = you're not working Teleport right now; that's inventory,
+    # not exposure — drop out of the prompt instead of nagging in red for days.
+    # Fresh expiry (default <24h, override TELEPORT_ZSH_STALE_AFTER) stays loud.
+    (( now - exp > ${TELEPORT_ZSH_STALE_AFTER:-86400} )) && return
     ttl='expired' state=CRIT fg=1
   else
     left=$(( exp - now ))
@@ -223,6 +227,9 @@ _teleport_ttl_warn() {
   local left=$(( _tp_expiry - EPOCHSECONDS ))
   local key="${certs[1]}:${_tp_expiry}" short=${prof%%.*}
   if (( left <= 0 )); then
+    # Same staleness rule as the prompt segment: warn only while the expiry
+    # is fresh; a cert that's been dead for a day isn't news in every shell.
+    (( -left > ${TELEPORT_ZSH_STALE_AFTER:-86400} )) && return 0
     if [[ -z ${_tp_warned[${key}:expired]} ]]; then
       _tp_warned[${key}:expired]=1
       print -P "%F{1}⚠ teleport cert for ${short} has expired — tsh login%f"
