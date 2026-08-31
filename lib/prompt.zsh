@@ -204,6 +204,13 @@ instant_prompt_teleport() { prompt_teleport }
 typeset -gA _tp_warned _tp_seen_live
 
 _teleport_ttl_warn() {
+  # p10k instant-prompt safety: the first precmd of a shell fires inside the
+  # instant-prompt capture window, and printing there trips its console-output
+  # warning. Skip that one prompt; the shoulder-tap can arrive one prompt late.
+  if [[ -z $_tp_warn_armed ]]; then
+    typeset -g _tp_warn_armed=1
+    return 0
+  fi
   local tdir=${TELEPORT_HOME:-$HOME/.tsh} prof
   [[ -r $tdir/current-profile ]] || return 0
   prof=$(<$tdir/current-profile)
