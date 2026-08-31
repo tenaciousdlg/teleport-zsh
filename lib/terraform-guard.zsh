@@ -44,9 +44,17 @@ PY
   tffiles=(*.tf(N) *.tfvars(N))
   (( $#tffiles )) && proxies=(${(f)"$(grep -rhoE '(proxy_address|addr)[[:space:]]*=[[:space:]]*"[^"]+"' -- $tffiles 2>/dev/null |
                    grep -oE '"[^"]+"' | tr -d '"' | sort -u)"})
-  [[ -n $TF_VAR_proxy_address ]] && proxies+=("$TF_VAR_proxy_address (env)")
+  # Drop uninterpolated tf expressions ("${var.proxy_address}:443") — configs
+  # that take proxy_address from TF_VAR env match only the interpolation,
+  # which garbles the mismatch check and, worse, used to become the confirm
+  # token and blow up `read`'s prompt expansion (found 2026-08-31 during the
+  # dev-demo teardown). The env value, when present, is the resolved truth —
+  # it goes first so token derivation prefers it.
+  proxies=(${proxies:#*\$\{*})
+  [[ -n $TF_VAR_proxy_address ]] && proxies=("$TF_VAR_proxy_address" $proxies)
 
   local token=${${proxies[1]%%[.:]*}:-${PWD:t}}
+  token=${token//[^A-Za-z0-9_-]/}
 
   print -u2 ""
   print -u2 -P "%F{1}%B╳ DESTROY GUARD%b%f — terraform ${sub} in:"
@@ -71,7 +79,11 @@ PY
     print -u2 -P "   %F{3}kubectl get crds -o name | grep teleport | xargs -I{} kubectl patch {} -p '{\"metadata\":{\"finalizers\":[]}}' --type=merge%f"
   fi
   local REPLY
-  read -r "REPLY?Type '${token}' to proceed, anything else aborts: "
+  # print -rn keeps the prompt raw — never let derived strings hit prompt
+  # expansion (a token containing ${...} parse-errored the read; same
+  # 2026-08-31 incident as the interpolation filter above).
+  print -u2 -rn -- "Type '${token}' to proceed, anything else aborts: "
+  read -r REPLY
   if [[ $REPLY != $token ]]; then
     print -u2 -P "%F{1}aborted%f (nothing destroyed)"
     return 1
