@@ -26,6 +26,42 @@ zmodload zsh/stat zsh/datetime 2>/dev/null
 
 typeset -gA _tp_expiry_memo _tp_roles_memo _tp_req_memo _tp_base_memo
 
+# Beams tenants are named <adjective>-<noun> and one half is very often a color
+# or a strongly-colored noun, so the segment can just wear its own name:
+# bitter-violet reads violet, long-grass green, damp-fire orange. Names with no
+# color word (bold-truth, presales) are left on the normal health colors.
+# Opt out with TELEPORT_ZSH_NAME_COLORS=off. Explicit TELEPORT_ZSH_CLUSTER_COLORS
+# patterns win over this, and any non-OK cert state wins over both.
+typeset -gA TELEPORT_ZSH_NAME_PALETTE=(
+  violet 93    purple 129   lavender 183 mauve 139    plum 96      indigo 54
+  magenta 201  fuchsia 201  pink 218     rose 211     cherry 161   berry 125
+  red 196      crimson 160  scarlet 196  ruby 124     maroon 88    rust 166
+  orange 208   amber 214    coral 209    salmon 210   peach 216    copper 173
+  gold 220     yellow 226   lemon 227    sand 223     tan 180      bronze 136
+  olive 100    lime 154     green 46     emerald 42   jade 35      moss 71
+  grass 70     sage 108     mint 121     teal 30      turquoise 44 aqua 45
+  cyan 51      sky 117      azure 39     blue 33      cobalt 26    sapphire 25
+  denim 25     navy 18      slate 103    steel 67     silver 250   ash 244
+  gray 244     grey 244     white 15     ivory 230    snow 255     black 8
+  brown 130    fire 202     ember 166    ocean 26     sea 37       storm 60
+)
+
+# First color word in a hyphenated cluster name → $_tp_namecolor. Sets a global
+# for the same reason _teleport_cert_meta does: a $(...) here would fork on
+# every prompt.
+_teleport_name_color() {
+  typeset -g _tp_namecolor=""
+  [[ $TELEPORT_ZSH_NAME_COLORS == off ]] && return 1
+  local w
+  for w in ${(s:-:)1}; do
+    if [[ -n ${TELEPORT_ZSH_NAME_PALETTE[$w]:-} ]]; then
+      _tp_namecolor=${TELEPORT_ZSH_NAME_PALETTE[$w]}
+      return 0
+    fi
+  done
+  return 1
+}
+
 # Parse the cert once per mtime: notAfter → $_tp_expiry (epoch), roles →
 # $_tp_roles (space-joined), active request count → $_tp_nreq. Sets globals
 # instead of printing — a $(...) call would run in a subshell and lose the
@@ -179,15 +215,18 @@ prompt_teleport() {
   # Cluster color accents: TELEPORT_ZSH_CLUSTER_COLORS=(pattern color ...)
   # e.g. ('prod-*' 1 '*.teleport.sh' 208) — anything prod-shaped reads hot
   # even when healthy. Warning/persona colors still take precedence.
-  if [[ $state == OK && -z $persona ]] && (( $#TELEPORT_ZSH_CLUSTER_COLORS )); then
-    local _i _pat
+  if [[ $state == OK && -z $persona ]]; then
+    local _i _pat _hit=0
     for (( _i=1; _i + 1 <= $#TELEPORT_ZSH_CLUSTER_COLORS; _i+=2 )); do
       _pat=${TELEPORT_ZSH_CLUSTER_COLORS[_i]}
       if [[ $prof == ${~_pat} || $cluster == ${~_pat} ]]; then
         fg=${TELEPORT_ZSH_CLUSTER_COLORS[_i+1]}
+        _hit=1
         break
       fi
     done
+    # No explicit pattern matched — let the tenant name pick its own color.
+    (( _hit )) || { _teleport_name_color "$cluster" && fg=$_tp_namecolor }
   fi
 
   # Persona shells stay magenta while healthy so bob/alice terminals are
