@@ -35,9 +35,9 @@
 #   4. <target>.<domain> for each configured domain, narrowed by DNS
 #   5. otherwise               -> error listing what is known
 #
-# Step 4 is the one that can surprise you, so it never guesses silently: with
-# more than one domain configured, only candidates that actually resolve in DNS
-# are considered, an ambiguous result is an error listing the candidates, and a
+# Step 4 is the one that can surprise you, so it never guesses silently: only
+# candidates that actually resolve in DNS are considered (with one domain or
+# several), an ambiguous result is an error listing the candidates, and a
 # convention hit is always labelled "(by convention)" in the echoed line. Pin
 # anything stable in _CLUSTERS and it never reaches step 4 at all.
 #
@@ -96,14 +96,14 @@ _teleport_resolve_cluster() {
     if [[ -z $_tp_addr ]] && (( $#domains )); then
       local -a cands=(${^domains:#}) hits=()
       cands=("${t}."${^domains})
-      if (( $#cands == 1 )); then
-        hits=($cands)                      # single domain: no DNS probe needed
-      else
-        local c
-        for c in $cands; do
-          _teleport_host_resolves "$c" && hits+=($c)
-        done
-      fi
+      # Probe even with ONE domain. Skipping it turned any unknown short name
+      # into a guessed <name>.<domain>: `tlogin lab` logged out of and tried to
+      # log into lab.acme.example.com, which did not exist. A name that does
+      # not resolve now stops here instead.
+      local c
+      for c in $cands; do
+        _teleport_host_resolves "$c" && hits+=($c)
+      done
       case $#hits in
         1) _tp_addr=${hits[1]} _tp_via=convention ;;
         0) typeset -g _tp_cands="${(j: :)cands}"; return 1 ;;
